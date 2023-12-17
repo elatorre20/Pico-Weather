@@ -10,10 +10,16 @@ int status = WL_IDLE_STATUS; //status of Wifi connection
 char server[] = "forecast.weather.gov";  //National Weather Service Data
 WiFiClientSecure client; 
 
+//data
+char site_data[16384]; //buffer to hold the downloaded web page
+uint8_t temperature, humidity, wind_speed; //weather stats to be displayed
+char data_buf[3]; //to hold the strings to be parsed for values
+
 
 void setup() {
   Serial.begin(9600); //begin USB serial
   status = WiFi.begin(ssid, pass); //attempt wifi connection
+  delay(3000); //wait for wifi connection
   Serial.print("Wifi status: ");
   if(status == WL_CONNECTED){ //if wifi connects successfully
     client.setInsecure(); //connect to SSL server but ignore certs
@@ -25,17 +31,23 @@ void setup() {
       client.println("User-Agent: Pico_Weather/v0.1");
       client.println("Connection: close");
       client.println();
-      delay(1000);
-      int count = 0;
-      while(client.available()){ 
+      delay(1000); //wait for data to load
+      uint16_t count = 0;
+      while(client.available()){//read site data into buffer
+        site_data[count] = (char)client.read();
         count++;
-        Serial.print((char)client.read());//print data from client to serial
-        // if(count == 64){//line break every 64 characters
-        //   count = 0;
-        //   Serial.println();
-        // }
       }
-      Serial.println("Nothing more to read!");
+      Serial.println("\n");
+      char* data_start = strstr(site_data, "\nBOSTON"); //start point of the data we want
+      memset(data_buf, 0, 3); //clear data buffer
+      strncpy(data_buf, data_start+25, 3); //copy the data we want into the buffer
+      temperature = (atoi(data_buf)); //get the int value for temperature
+      memset(data_buf, 0, 3); //clear data buffer
+      strncpy(data_buf, data_start+33, 3); //copy the data we want into the buffer
+      humidity = (atoi(data_buf)); //get the int value for temperature
+      Serial.println((String)"The temperature in Boston is now: " + temperature + "*F");
+      Serial.println((String)"The relative humidity in Boston is now: " + humidity + "%");
+      
     }
   }
   else{

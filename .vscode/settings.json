@@ -9,6 +9,7 @@
         "string_view": "cpp",
         "initializer_list": "cpp",
         "ranges": "cpp",
-        "*.tcc": "cpp"
+        "*.tcc": "cpp",
+        "variant": "cpp"
     }
 }
