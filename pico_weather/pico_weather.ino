@@ -11,8 +11,8 @@ char server[] = "forecast.weather.gov";  //National Weather Service Data
 WiFiClientSecure client; 
 
 //data
-char site_data[16384]; //buffer to hold the downloaded web page
-uint8_t temperature, humidity, wind_speed; //weather stats to be displayed
+char site_data[65535]; //buffer to hold the downloaded web page
+uint8_t temperature, humidity, data_temp; //weather stats to be displayed
 char data_buf[3]; //to hold the strings to be parsed for values
 
 
@@ -20,7 +20,12 @@ void setup() {
   Serial.begin(9600); //begin USB serial
   status = WiFi.begin(ssid, pass); //attempt wifi connection
   delay(3000); //wait for wifi connection
-  Serial.print("Wifi status: ");
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+  digitalWrite(LED_BUILTIN, HIGH);
+  Serial.println((String)"Wifi status: " + (status == WL_CONNECTED));
   if(status == WL_CONNECTED){ //if wifi connects successfully
     client.setInsecure(); //connect to SSL server but ignore certs
     Serial.println("Connected to WiFi!");
@@ -31,35 +36,37 @@ void setup() {
       client.println("User-Agent: Pico_Weather/v0.1");
       client.println("Connection: close");
       client.println();
-      delay(1000); //wait for data to load
+      delay(3000); //wait for data to load
+      memset(site_data, 0, sizeof(site_data));
       uint16_t count = 0;
-      while(client.available()){//read site data into buffer
+      while(client.available() && count < sizeof(site_data)){//read site data into buffer
         site_data[count] = (char)client.read();
+        //Serial.print(site_data[count]);
         count++;
       }
       Serial.println("\n");
       char* data_start = strstr(site_data, "\nBOSTON"); //start point of the data we want
       memset(data_buf, 0, 3); //clear data buffer
-      strncpy(data_buf, data_start+25, 3); //copy the data we want into the buffer
-      temperature = (atoi(data_buf)); //get the int value for temperature
-      memset(data_buf, 0, 3); //clear data buffer
       strncpy(data_buf, data_start+33, 3); //copy the data we want into the buffer
-      humidity = (atoi(data_buf)); //get the int value for temperature
+      if(atoi(data_buf)){ //nonzero humidity means good data
+        humidity = (atoi(data_buf)); //get the int value for humidity
+        memset(data_buf, 0, 3); //clear data buffer
+        strncpy(data_buf, data_start+25, 3); //copy the data we want into the buffer
+        temperature = (atoi(data_buf)); //get the int value for temperature
+      }
+      else{
+        Serial.println("Bad data, not updating values");
+      }
+      
       Serial.println((String)"The temperature in Boston is now: " + temperature + "*F");
       Serial.println((String)"The relative humidity in Boston is now: " + humidity + "%");
-      
+      Serial.println();
     }
   }
   else{
     Serial.println("Connection Failed!");
   }
-}
-
-void loop() { //to know that the setup has finished runnign
-  // put your main code here, to run repeatedly:
-  digitalWrite(LED_BUILTIN, HIGH);
-  delay(500);
   digitalWrite(LED_BUILTIN, LOW);
-  delay(500);
+  delay(600000);
 }
   
