@@ -2,6 +2,10 @@
 #include <WiFiClientSecure.h>
 #include "secret.h"
 
+//scheduling
+uint32_t task_millis[3]; //used to keep track of execution times of tasks [remote update, check mode]
+#define DOWNLOAD_UPDATE_PERIOD 60000 //download temperatures every 60 seconds
+#define MODE_UPDATE_PERIOD 500 //check every half second what metric is wanted and write it
 
 //wifi 
 char ssid[] = SSID_SECRET; //SSID and password are imported from ignored secret.h for security
@@ -12,18 +16,10 @@ WiFiClientSecure client;
 
 //data
 char site_data[65535]; //buffer to hold the downloaded web page
-uint8_t temperature, humidity, data_temp; //weather stats to be displayed
+uint8_t temperature, humidity, indoor_temperature, indoor_humidity, data_temp; //weather stats to be displayed
 char data_buf[3]; //to hold the strings to be parsed for values
 
-
-void setup() {
-  Serial.begin(9600); //begin USB serial
-  status = WiFi.begin(ssid, pass); //attempt wifi connection
-  delay(3000); //wait for wifi connection
-}
-
-void loop() {
-  // put your main code here, to run repeatedly:
+void updateRemoteTemps(){
   digitalWrite(LED_BUILTIN, HIGH);
   Serial.println((String)"Wifi status: " + (status == WL_CONNECTED));
   if(status == WL_CONNECTED){ //if wifi connects successfully
@@ -67,6 +63,32 @@ void loop() {
     Serial.println("Connection Failed!");
   }
   digitalWrite(LED_BUILTIN, LOW);
-  delay(600000);
+}
+
+//display
+void writeToMeter(uint8_t temp){
+  uint16_t meter_val = temp * 257;
+  Serial.println((String)temp + "," + meter_val);
+  analogWrite(METER_PIN, meter_val);
+  delayMicroseconds(500);
+}
+
+void setup() {
+  Serial.begin(9600); //begin USB serial
+  pinMode(METER_PIN, OUTPUT); //setup the meter pin
+  analogWriteResolution(16);
+  status = WiFi.begin(ssid, pass); //attempt wifi connection
+  delay(3000); //wait for wifi connection
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+  if(millis() - task_millis[0] > DOWNLOAD_UPDATE_PERIOD){
+    updateRemoteTemps();
+  }
+  if(millis() - task_millis[1] > MODE_UPDATE_PERIOD){
+    indoor_temperature++;
+    writeToMeter(indoor_temperature);
+  }
 }
   
