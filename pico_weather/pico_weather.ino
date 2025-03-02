@@ -3,9 +3,10 @@
 #include "secret.h"
 
 //scheduling
-uint32_t task_millis[3]; //used to keep track of execution times of tasks [remote update, check mode]
-#define DOWNLOAD_UPDATE_PERIOD 60000 //download temperatures every 60 seconds
-#define MODE_UPDATE_PERIOD 500 //check every half second what metric is wanted and write it
+uint32_t task_millis[3]; //used to keep track of execution times of tasks [remote update, local update, check mode]
+#define DOWNLOAD_UPDATE_PERIOD 60000 
+#define LOCAL_UPDATE_PERIOD 500
+#define MODE_UPDATE_PERIOD 100 
 
 //wifi 
 char ssid[] = SSID_SECRET; //SSID and password are imported from ignored secret.h for security
@@ -16,7 +17,7 @@ WiFiClientSecure client;
 
 //data
 char site_data[65535]; //buffer to hold the downloaded web page
-uint8_t temperature, humidity, indoor_temperature, indoor_humidity, data_temp; //weather stats to be displayed
+uint8_t outdoor_temperature, outdoor_humidity, indoor_temperature, indoor_humidity, data_temp; //weather stats to be displayed
 char data_buf[3]; //to hold the strings to be parsed for values
 
 void updateRemoteTemps(){
@@ -45,17 +46,17 @@ void updateRemoteTemps(){
       memset(data_buf, 0, 3); //clear data buffer
       strncpy(data_buf, data_start+33, 3); //copy the data we want into the buffer
       if(atoi(data_buf)){ //nonzero humidity means good data
-        humidity = (atoi(data_buf)); //get the int value for humidity
+        outdoor_humidity = (atoi(data_buf)); //get the int value for humidity
         memset(data_buf, 0, 3); //clear data buffer
         strncpy(data_buf, data_start+25, 3); //copy the data we want into the buffer
-        temperature = (atoi(data_buf)); //get the int value for temperature
+        outdoor_temperature = (atoi(data_buf)); //get the int value for temperature
       }
       else{
         Serial.println("Bad data, not updating values");
       }
       
-      Serial.println((String)"The temperature in Boston is now: " + temperature + "*F");
-      Serial.println((String)"The relative humidity in Boston is now: " + humidity + "%");
+      Serial.println((String)"The temperature in Boston is now: " + outdoor_temperature + "*F");
+      Serial.println((String)"The relative humidity in Boston is now: " + outdoor_humidity + "%");
       Serial.println();
     }
   }
@@ -66,15 +67,22 @@ void updateRemoteTemps(){
 }
 
 //display
+#define METER_PIN 21
+#define KNOB_PIN 29
+uint8_t disp_mode = 0; //counter for which stat is to be displayed
 void writeToMeter(uint8_t temp){
-  uint16_t meter_val = temp * 257;
+  uint16_t meter_val = temp * 257; //update this with the conversion from temp to analogWrite value to display correctly
   Serial.println((String)temp + "," + meter_val);
   analogWrite(METER_PIN, meter_val);
   delayMicroseconds(500);
 }
+void updateMode(){
+  disp_mode = analogRead(KNOB_PIN) >> 8; //turn the meter reading to a selection out of 4 modes
+}
 
 void setup() {
   Serial.begin(9600); //begin USB serial
+  pinMode(KNOB_PIN, INPUT); //setup the mode knob pin
   pinMode(METER_PIN, OUTPUT); //setup the meter pin
   analogWriteResolution(16);
   status = WiFi.begin(ssid, pass); //attempt wifi connection
@@ -83,12 +91,29 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-  if(millis() - task_millis[0] > DOWNLOAD_UPDATE_PERIOD){
+  if(millis() - task_millis[0] > DOWNLOAD_UPDATE_PERIOD){ //time to download the outdoor temp/humidity
     updateRemoteTemps();
   }
-  if(millis() - task_millis[1] > MODE_UPDATE_PERIOD){
-    indoor_temperature++;
-    writeToMeter(indoor_temperature);
+  if(millis() -  task_millis[1] > LOCAL_UPDATE_PERIOD){ //time to read the indoor temp/humidity
+    break;
+  }
+  if(millis() - task_millis[2] > MODE_UPDATE_PERIOD){ //time to check the mode knob and display the appropriate stat
+    updateMode();
+    if(disp_mode == 0){
+      writeToMeter(indoor_temperature);
+    }
+    else if(disp_mode == 1){
+      writeToMeter(indoor_humidity);
+    }
+    else if(disp_mode == 2){
+      writeToMeter(outdoor_temperature);
+    }
+    else if(disp_mode == 3){
+      writeToMeter(outdoor_humidity);
+    }
+
+    // indoor_temperature++;
+    // writeToMeter(indoor_temperature);
   }
 }
   
