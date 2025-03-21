@@ -33,21 +33,12 @@
             ],
             "intelliSenseMode": "gcc-x64",
             "includePath": [
-                "C:\\Users\\emili\\AppData\\Local\\Arduino15\\packages\\rp2040\\hardware\\rp2040\\3.2.2\\include",
-                "C:\\Users\\emili\\AppData\\Local\\Arduino15\\packages\\rp2040\\hardware\\rp2040\\3.2.2\\cores\\rp2040",
-                "C:\\Users\\emili\\AppData\\Local\\Arduino15\\packages\\rp2040\\hardware\\rp2040\\3.2.2\\variants\\rpipico",
-                "c:\\users\\emili\\appdata\\local\\arduino15\\packages\\rp2040\\tools\\pqt-gcc\\1.5.0-b-c7bab52\\arm-none-eabi\\include\\c++\\10.3.0",
-                "c:\\users\\emili\\appdata\\local\\arduino15\\packages\\rp2040\\tools\\pqt-gcc\\1.5.0-b-c7bab52\\arm-none-eabi\\include\\c++\\10.3.0\\arm-none-eabi\\thumb",
-                "c:\\users\\emili\\appdata\\local\\arduino15\\packages\\rp2040\\tools\\pqt-gcc\\1.5.0-b-c7bab52\\arm-none-eabi\\include\\c++\\10.3.0\\backward",
-                "c:\\users\\emili\\appdata\\local\\arduino15\\packages\\rp2040\\tools\\pqt-gcc\\1.5.0-b-c7bab52\\lib\\gcc\\arm-none-eabi\\10.3.0\\include",
-                "c:\\users\\emili\\appdata\\local\\arduino15\\packages\\rp2040\\tools\\pqt-gcc\\1.5.0-b-c7bab52\\lib\\gcc\\arm-none-eabi\\10.3.0\\include-fixed",
-                "c:\\users\\emili\\appdata\\local\\arduino15\\packages\\rp2040\\tools\\pqt-gcc\\1.5.0-b-c7bab52\\arm-none-eabi\\include",
-                "c:\\Users\\emili\\Documents\\Arduino\\**",
-                "e:\\Documents\\Arduino\\**",
-                "c:\\Users\\EmilioGL\\AppData\\Local\\Arduino15\\**"
+                "c:\\Users\\EmilioGL\\AppData\\Local\\Arduino15\\**",
+                "c:\\Users\\Emilio\\AppData\\Local\\Arduino15\\**",
+                "C:\\Users\\Emilio\\Documents\\Arduino",
+                "E:\\Documents\\Arduino\\**"
             ],
             "forcedInclude": [
-                "C:\\Users\\emili\\AppData\\Local\\Arduino15\\packages\\rp2040\\hardware\\rp2040\\3.2.2\\cores\\rp2040\\Arduino.h"
             ],
             "cStandard": "c11",
             "cppStandard": "c++17",

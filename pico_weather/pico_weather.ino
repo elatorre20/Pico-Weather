@@ -68,7 +68,7 @@ void updateRemoteTemps(){
 
 //display
 #define METER_PIN 21
-#define KNOB_PIN 29
+#define KNOB_PIN 28
 uint8_t disp_mode = 0; //counter for which stat is to be displayed
 void writeToMeter(uint8_t temp){
   uint16_t meter_val = temp * 257; //update this with the conversion from temp to analogWrite value to display correctly
@@ -92,14 +92,17 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
   if(millis() - task_millis[0] > DOWNLOAD_UPDATE_PERIOD){ //time to download the outdoor temp/humidity
+    task_millis[0] = millis();
     updateRemoteTemps();
   }
   if(millis() -  task_millis[1] > LOCAL_UPDATE_PERIOD){ //time to read the indoor temp/humidity
-    break;
+    task_millis[1] = millis();
   }
   if(millis() - task_millis[2] > MODE_UPDATE_PERIOD){ //time to check the mode knob and display the appropriate stat
-    updateMode();
+    task_millis[2] = millis();
+    //updateMode();
     if(disp_mode == 0){
+      indoor_temperature = analogRead(KNOB_PIN) >> 2;
       writeToMeter(indoor_temperature);
     }
     else if(disp_mode == 1){
