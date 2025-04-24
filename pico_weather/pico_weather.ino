@@ -20,6 +20,10 @@ char site_data[65535]; //buffer to hold the downloaded web page
 uint8_t outdoor_temperature, outdoor_humidity, indoor_temperature, indoor_humidity, data_temp; //weather stats to be displayed
 char data_buf[3]; //to hold the strings to be parsed for values
 
+//leds
+#define BLUE_LED_PIN 14
+#define WHITE_LED_PIN 15
+
 void updateRemoteTemps(){
   digitalWrite(LED_BUILTIN, HIGH);
   Serial.println((String)"Wifi status: " + (status == WL_CONNECTED));
@@ -84,7 +88,11 @@ void setup() {
   Serial.begin(9600); //begin USB serial
   pinMode(KNOB_PIN, INPUT); //setup the mode knob pin
   pinMode(METER_PIN, OUTPUT); //setup the meter pin
+  pinMode(BLUE_LED_PIN, OUTPUT);
+  pinMode(WHITE_LED_PIN, OUTPUT);
   analogWriteResolution(16);
+  analogWrite(BLUE_LED_PIN, 32767);
+  analogWrite(WHITE_LED_PIN, 32767);
   status = WiFi.begin(ssid, pass); //attempt wifi connection
   delay(3000); //wait for wifi connection
 }
