@@ -1,5 +1,6 @@
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
+#include <DHT.h>
 #include "secret.h"
 
 //scheduling
@@ -19,6 +20,13 @@ WiFiClientSecure client;
 char site_data[65535]; //buffer to hold the downloaded web page
 uint8_t outdoor_temperature, outdoor_humidity, indoor_temperature, indoor_humidity, data_temp; //weather stats to be displayed
 char data_buf[3]; //to hold the strings to be parsed for values
+
+//local sensor
+#define DHTTYPE DHT11
+#define SENSOR_PIN 15
+DHT dht(SENSOR_PIN, DHTTYPE);
+float local_temp = 0;
+float local_humidity = 0;
 
 //leds
 #define BLUE_LED_PIN 14
@@ -80,6 +88,7 @@ void writeToMeter(uint8_t temp){
   analogWrite(METER_PIN, meter_val);
   delayMicroseconds(500);
 }
+
 void updateMode(){
   disp_mode = analogRead(KNOB_PIN) >> 8; //turn the meter reading to a selection out of 4 modes
 }
@@ -93,6 +102,7 @@ void setup() {
   analogWriteResolution(16);
   analogWrite(BLUE_LED_PIN, 32767);
   analogWrite(WHITE_LED_PIN, 32767);
+  dht.begin();
   status = WiFi.begin(ssid, pass); //attempt wifi connection
   delay(3000); //wait for wifi connection
 }
