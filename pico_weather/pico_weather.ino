@@ -3,6 +3,8 @@
 #include <DHT.h>
 #include "secret.h"
 
+#define REMOTE_TEMP
+
 //scheduling
 uint32_t task_millis[3]; //used to keep track of execution times of tasks [remote update, local update, check mode]
 #define DOWNLOAD_UPDATE_PERIOD 60000 
@@ -81,9 +83,174 @@ void updateRemoteTemps(){
 //display
 #define METER_PIN 21
 #define KNOB_PIN 28
-uint8_t disp_mode = 0; //counter for which stat is to be displayed
+typedef struct {
+    uint8_t temp;
+    uint16_t val;
+} temp_lut; //lookup table for temps
+temp_lut temps_l[51] = {
+    {0, 48830},
+    {1, 48057},
+    {2, 47285},
+    {3, 46512},
+    {4, 45740},
+    {5, 44957},
+    {6, 44101},
+    {7, 43245},
+    {8, 42390},
+    {9, 41534},
+    {10, 40606},
+    {11, 39683},
+    {12, 38760},
+    {13, 37838},
+    {14, 36915},
+    {15, 35980},
+    {16, 34968},
+    {17, 33956},
+    {18, 32944},
+    {19, 31932},
+    {20, 30840},
+    {21, 29812},
+    {22, 28784},
+    {23, 27756},
+    {24, 26728},
+    {25, 25700},
+    {26, 24672},
+    {27, 23644},
+    {28, 22616},
+    {29, 21588},
+    {30, 20560},
+    {31, 19505},
+    {32, 18449},
+    {33, 17394},
+    {34, 16338},
+    {35, 15677},
+    {36, 14592},
+    {37, 13506},
+    {38, 12421},
+    {39, 11335},
+    {40, 10794},
+    {41, 9673},
+    {42, 8552},
+    {43, 7432},
+    {44, 6311},
+    {45, 6168},
+    {46, 5047},
+    {47, 3925},
+    {48, 2804},
+    {49, 1682},
+    {50, 2065}
+};
+
+temp_lut temps_h[74] = {
+    {49, 41089},
+    {50, 40606},
+    {51, 40092},
+    {52, 39578},
+    {53, 39064},
+    {54, 38550},
+    {55, 38036},
+    {56, 37522},
+    {57, 37008},
+    {58, 36494},
+    {59, 35980},
+    {60, 35409},
+    {61, 34838},
+    {62, 34267},
+    {63, 33696},
+    {64, 33124},
+    {65, 32553},
+    {66, 31982},
+    {67, 31411},
+    {68, 30840},
+    {69, 30268},
+    {70, 29697},
+    {71, 29126},
+    {72, 28555},
+    {73, 27984},
+    {74, 27413},
+    {75, 26842},
+    {76, 26271},
+    {77, 25700},
+    {78, 25128},
+    {79, 24557},
+    {80, 23986},
+    {81, 23415},
+    {82, 22844},
+    {83, 22273},
+    {84, 21702},
+    {85, 21131},
+    {86, 20560},
+    {87, 20017},
+    {88, 19474},
+    {89, 18932},
+    {90, 18389},
+    {91, 17847},
+    {92, 17304},
+    {93, 16762},
+    {94, 16219},
+    {95, 15677},
+    {96, 15134},
+    {97, 14591},
+    {98, 14049},
+    {99, 13506},
+    {100, 12964},
+    {101, 12421},
+    {102, 11879},
+    {103, 11336},
+    {104, 10794},
+    {105, 10280},
+    {106, 9766},
+    {107, 9252},
+    {108, 8738},
+    {109, 8224},
+    {110, 7710},
+    {111, 7196},
+    {112, 6682},
+    {113, 6168},
+    {114, 5712},
+    {115, 5256},
+    {116, 4800},
+    {117, 4344},
+    {118, 3888},
+    {119, 3432},
+    {120, 2976},
+    {121, 2520},
+    {122, 2065}
+};
+
+uint8_t disp_mode = 2; //counter for which stat is to be displayed
 void writeToMeter(uint8_t temp){
-  uint16_t meter_val = temp * 257; //update this with the conversion from temp to analogWrite value to display correctly
+  uint16_t meter_val = 0;
+  uint8_t range = 0;
+  if(temp < 0){
+    temp = 0;
+    Serial.println("Temp out of range (low)");
+  }
+  if(temp > 50){ //high range
+    range = 1;
+  }
+  if(temp > 122){
+    temp = 122;
+    Serial.println("Temp out of range (high)");
+  }
+  for(uint8_t i = 0; i < 10; i++){
+    if(range){ //high range
+      digitalWrite(BLUE_LED_PIN, 0);
+      for(uint8_t i = 0; i < 74; i++){
+        if(temps_h[i].temp == temp){
+          meter_val = temps_h[i].val;
+        }
+      }
+    }
+    else{ //low range
+      digitalWrite(BLUE_LED_PIN, 32767);
+      for(uint8_t i = 0; i < 51; i++){
+        if(temps_l[i].temp == temp){
+          meter_val = temps_l[i].val;
+        }
+      }
+    }
+  }
   Serial.println((String)temp + "," + meter_val);
   analogWrite(METER_PIN, meter_val);
   delayMicroseconds(500);
@@ -100,11 +267,15 @@ void setup() {
   pinMode(BLUE_LED_PIN, OUTPUT);
   pinMode(WHITE_LED_PIN, OUTPUT);
   analogWriteResolution(16);
-  analogWrite(BLUE_LED_PIN, 32767);
-  analogWrite(WHITE_LED_PIN, 32767);
+  analogWrite(BLUE_LED_PIN, 0);
+  analogWrite(WHITE_LED_PIN, 0);
   dht.begin();
+  delay(3000);
+  Serial.println("Attempting wifi connection!");
   status = WiFi.begin(ssid, pass); //attempt wifi connection
-  delay(3000); //wait for wifi connection
+  delay(10000); //wait for wifi connection
+  Serial.println((String)"Wifi status: " + (status == WL_CONNECTED));
+  
 }
 
 void loop() {
@@ -120,7 +291,7 @@ void loop() {
     task_millis[2] = millis();
     //updateMode();
     if(disp_mode == 0){
-      indoor_temperature = analogRead(KNOB_PIN) >> 2;
+      // indoor_temperature = analogRead(KNOB_PIN) >> 2;
       writeToMeter(indoor_temperature);
     }
     else if(disp_mode == 1){
