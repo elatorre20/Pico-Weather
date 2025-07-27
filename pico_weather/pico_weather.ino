@@ -8,7 +8,7 @@
 //scheduling
 uint32_t task_millis[3]; //used to keep track of execution times of tasks [remote update, local update, check mode]
 #define DOWNLOAD_UPDATE_PERIOD 60000 
-#define LOCAL_UPDATE_PERIOD 500
+#define LOCAL_UPDATE_PERIOD 5000
 #define MODE_UPDATE_PERIOD 100 
 
 //wifi 
@@ -25,7 +25,7 @@ char data_buf[3]; //to hold the strings to be parsed for values
 
 //local sensor
 #define DHTTYPE DHT11
-#define SENSOR_PIN 15
+#define SENSOR_PIN 16
 DHT dht(SENSOR_PIN, DHTTYPE);
 float local_temp = 0;
 float local_humidity = 0;
@@ -87,7 +87,7 @@ typedef struct {
     uint8_t temp;
     uint16_t val;
 } temp_lut; //lookup table for temps
-temp_lut temps_l[51] = {
+temp_lut temps_l[51] = { //low (celsius) range
     {0, 48830},
     {1, 48057},
     {2, 47285},
@@ -141,7 +141,7 @@ temp_lut temps_l[51] = {
     {50, 2065}
 };
 
-temp_lut temps_h[74] = {
+temp_lut temps_h[74] = { //high (farenheit) range
     {49, 41089},
     {50, 40606},
     {51, 40092},
@@ -243,7 +243,7 @@ void writeToMeter(uint8_t temp){
       }
     }
     else{ //low range
-      digitalWrite(BLUE_LED_PIN, 32767);
+      analogWrite(BLUE_LED_PIN, 32767);
       for(uint8_t i = 0; i < 51; i++){
         if(temps_l[i].temp == temp){
           meter_val = temps_l[i].val;
@@ -267,29 +267,37 @@ void setup() {
   pinMode(BLUE_LED_PIN, OUTPUT);
   pinMode(WHITE_LED_PIN, OUTPUT);
   analogWriteResolution(16);
-  analogWrite(BLUE_LED_PIN, 0);
-  analogWrite(WHITE_LED_PIN, 0);
+  digitalWrite(BLUE_LED_PIN, 0);
+  digitalWrite(WHITE_LED_PIN, 0);
   dht.begin();
   delay(3000);
   Serial.println("Attempting wifi connection!");
   status = WiFi.begin(ssid, pass); //attempt wifi connection
   delay(10000); //wait for wifi connection
-  Serial.println((String)"Wifi status: " + (status == WL_CONNECTED));
-  
+  updateRemoteTemps();
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
   if(millis() - task_millis[0] > DOWNLOAD_UPDATE_PERIOD){ //time to download the outdoor temp/humidity
     task_millis[0] = millis();
+    if(status != WL_CONNECTED){
+      status = WiFi.begin(ssid, pass); //attempt wifi connection
+    }
     updateRemoteTemps();
   }
   if(millis() -  task_millis[1] > LOCAL_UPDATE_PERIOD){ //time to read the indoor temp/humidity
+    Serial.print("reading temp,humidity: ");
+    Serial.print(dht.readTemperature(true,false));
+    Serial.println((String)"," + dht.readHumidity(false));
+    indoor_temperature = (int)dht.readTemperature(true,false);
+    indoor_humidity = (int)dht.readHumidity(false);
     task_millis[1] = millis();
   }
   if(millis() - task_millis[2] > MODE_UPDATE_PERIOD){ //time to check the mode knob and display the appropriate stat
     task_millis[2] = millis();
-    //updateMode();
+    updateMode();
+    Serial.println((String) "mode = "+ disp_mode);
     if(disp_mode == 0){
       // indoor_temperature = analogRead(KNOB_PIN) >> 2;
       writeToMeter(indoor_temperature);
@@ -303,9 +311,6 @@ void loop() {
     else if(disp_mode == 3){
       writeToMeter(outdoor_humidity);
     }
-
-    // indoor_temperature++;
-    // writeToMeter(indoor_temperature);
   }
 }
   
