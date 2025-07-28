@@ -20,8 +20,9 @@ WiFiClientSecure client;
 
 //data
 char site_data[65535]; //buffer to hold the downloaded web page
-uint8_t outdoor_temperature, outdoor_humidity, indoor_temperature, indoor_humidity, data_temp; //weather stats to be displayed
+uint8_t outdoor_temperature, outdoor_humidity, rain, indoor_temperature, indoor_humidity, data_temp; //weather stats to be displayed
 char data_buf[3]; //to hold the strings to be parsed for values
+char weather_buf[33]; 
 
 //local sensor
 #define DHTTYPE DHT11
@@ -64,6 +65,13 @@ void updateRemoteTemps(){
         memset(data_buf, 0, 3); //clear data buffer
         strncpy(data_buf, data_start+25, 3); //copy the data we want into the buffer
         outdoor_temperature = (atoi(data_buf)); //get the int value for temperature
+        strncpy(weather_buf, data_start, 33);//copy the weather remark to the buffer
+        if strstr(weather_buf, "RAIN"){ //it is currently raining
+          analogWrite(WHITE_LED_PIN, 32767);
+        }
+        else{
+          digitalWrite(WHITE_LED_PIN, 0);
+        }
       }
       else{
         Serial.println("Bad data, not updating values");
