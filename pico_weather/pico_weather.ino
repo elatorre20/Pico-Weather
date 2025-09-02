@@ -34,6 +34,7 @@ float local_humidity = 0;
 //leds
 #define BLUE_LED_PIN 14
 #define WHITE_LED_PIN 15
+#define LED_BRIGHTNESS 1024
 
 void updateRemoteTemps(){
   digitalWrite(LED_BUILTIN, HIGH);
@@ -66,8 +67,8 @@ void updateRemoteTemps(){
         strncpy(data_buf, data_start+25, 3); //copy the data we want into the buffer
         outdoor_temperature = (atoi(data_buf)); //get the int value for temperature
         strncpy(weather_buf, data_start, 33);//copy the weather remark to the buffer
-        if strstr(weather_buf, "RAIN"){ //it is currently raining
-          analogWrite(WHITE_LED_PIN, 32767);
+        if(strstr(weather_buf, "RAIN")){ //it is currently raining
+          analogWrite(WHITE_LED_PIN, LED_BRIGHTNESS);
         }
         else{
           digitalWrite(WHITE_LED_PIN, 0);
@@ -243,7 +244,7 @@ void writeToMeter(uint8_t temp){
   }
   for(uint8_t i = 0; i < 10; i++){
     if(range){ //high range
-      digitalWrite(BLUE_LED_PIN, 0);
+      analogWrite(BLUE_LED_PIN, 0);
       for(uint8_t i = 0; i < 74; i++){
         if(temps_h[i].temp == temp){
           meter_val = temps_h[i].val;
@@ -251,7 +252,7 @@ void writeToMeter(uint8_t temp){
       }
     }
     else{ //low range
-      analogWrite(BLUE_LED_PIN, 32767);
+      analogWrite(BLUE_LED_PIN, LED_BRIGHTNESS);
       for(uint8_t i = 0; i < 51; i++){
         if(temps_l[i].temp == temp){
           meter_val = temps_l[i].val;
@@ -265,7 +266,19 @@ void writeToMeter(uint8_t temp){
 }
 
 void updateMode(){
-  disp_mode = analogRead(KNOB_PIN) >> 8; //turn the meter reading to a selection out of 4 modes
+  uint16_t knob_read = analogRead(KNOB_PIN);
+  if(knob_read < 260){
+    disp_mode = 0;
+  }
+  else if(knob_read < 515){
+    disp_mode = 1;
+  }
+  else if(knob_read < 774){
+    disp_mode = 2;
+  }
+  else{
+    disp_mode = 3;
+  }
 }
 
 void setup() {
@@ -275,8 +288,8 @@ void setup() {
   pinMode(BLUE_LED_PIN, OUTPUT);
   pinMode(WHITE_LED_PIN, OUTPUT);
   analogWriteResolution(16);
-  digitalWrite(BLUE_LED_PIN, 0);
-  digitalWrite(WHITE_LED_PIN, 0);
+  analogWrite(BLUE_LED_PIN, 0);
+  analogWrite(WHITE_LED_PIN, 0);
   dht.begin();
   delay(3000);
   Serial.println("Attempting wifi connection!");
@@ -307,17 +320,16 @@ void loop() {
     updateMode();
     Serial.println((String) "mode = "+ disp_mode);
     if(disp_mode == 0){
-      // indoor_temperature = analogRead(KNOB_PIN) >> 2;
-      writeToMeter(indoor_temperature);
-    }
-    else if(disp_mode == 1){
-      writeToMeter(indoor_humidity);
-    }
-    else if(disp_mode == 2){
       writeToMeter(outdoor_temperature);
     }
-    else if(disp_mode == 3){
+    else if(disp_mode == 1){
       writeToMeter(outdoor_humidity);
+    }
+    else if(disp_mode == 2){
+      writeToMeter(indoor_temperature);
+    }
+    else if(disp_mode == 3){
+      writeToMeter(indoor_humidity);
     }
   }
 }
