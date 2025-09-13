@@ -71,7 +71,7 @@ void updateRemoteTemps(){
           analogWrite(WHITE_LED_PIN, LED_BRIGHTNESS);
         }
         else{
-          digitalWrite(WHITE_LED_PIN, 0);
+          analogWrite(WHITE_LED_PIN, 0);
         }
       }
       else{
